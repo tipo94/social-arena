@@ -46,6 +46,23 @@ class Post extends Model
         'moderated_by',
         'published_at',
         'is_scheduled',
+        'edit_history',
+        'last_edited_at',
+        'last_edited_by',
+        'edit_count',
+        'is_edited',
+        'allow_editing',
+        'editing_locked_at',
+        'edit_deadline',
+        'deletion_reason',
+        'deleted_by',
+        'deletion_scheduled_at',
+        'permanent_deletion_at',
+        'can_be_restored',
+        'current_version',
+        'original_content',
+        'edit_notifications_sent',
+        'notification_recipients',
     ];
 
     /**
@@ -57,9 +74,16 @@ class Post extends Model
         'metadata' => 'array',
         'custom_audience' => 'array',
         'visibility_history' => 'array',
+        'edit_history' => 'array',
+        'original_content' => 'array',
+        'notification_recipients' => 'array',
         'allow_resharing' => 'boolean',
         'allow_comments' => 'boolean',
         'allow_reactions' => 'boolean',
+        'allow_editing' => 'boolean',
+        'is_edited' => 'boolean',
+        'can_be_restored' => 'boolean',
+        'edit_notifications_sent' => 'boolean',
         'is_reported' => 'boolean',
         'is_hidden' => 'boolean',
         'is_scheduled' => 'boolean',
@@ -67,6 +91,11 @@ class Post extends Model
         'published_at' => 'datetime',
         'visibility_expires_at' => 'datetime',
         'visibility_changed_at' => 'datetime',
+        'last_edited_at' => 'datetime',
+        'editing_locked_at' => 'datetime',
+        'edit_deadline' => 'datetime',
+        'deletion_scheduled_at' => 'datetime',
+        'permanent_deletion_at' => 'datetime',
     ];
 
     /**
@@ -119,6 +148,38 @@ class Post extends Model
     public function mediaAttachments(): MorphMany
     {
         return $this->morphMany(MediaAttachment::class, 'attachable');
+    }
+
+    /**
+     * Get all revisions for this post.
+     */
+    public function revisions(): HasMany
+    {
+        return $this->hasMany(PostRevision::class)->orderBy('version_number', 'desc');
+    }
+
+    /**
+     * Get deletion logs for this post.
+     */
+    public function deletionLogs(): HasMany
+    {
+        return $this->hasMany(PostDeletionLog::class);
+    }
+
+    /**
+     * Get the user who last edited this post.
+     */
+    public function lastEditedByUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'last_edited_by');
+    }
+
+    /**
+     * Get the user who deleted this post.
+     */
+    public function deletedByUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'deleted_by');
     }
 
     /**
@@ -468,6 +529,99 @@ class Post extends Model
     public function scopeCommentable(Builder $query): Builder
     {
         return $query->where('allow_comments', true);
+    }
+
+    /**
+     * Scope for edited posts.
+     */
+    public function scopeEdited(Builder $query): Builder
+    {
+        return $query->where('is_edited', true);
+    }
+
+    /**
+     * Scope for recently edited posts.
+     */
+    public function scopeRecentlyEdited(Builder $query, int $hours = 24): Builder
+    {
+        return $query->where('is_edited', true)
+                    ->where('last_edited_at', '>=', now()->subHours($hours));
+    }
+
+    /**
+     * Scope for locked posts.
+     */
+    public function scopeLocked(Builder $query): Builder
+    {
+        return $query->whereNotNull('editing_locked_at');
+    }
+
+    /**
+     * Scope for posts with edit deadlines.
+     */
+    public function scopeWithEditDeadlines(Builder $query): Builder
+    {
+        return $query->whereNotNull('edit_deadline');
+    }
+
+    /**
+     * Check if post is currently editable.
+     */
+    public function isCurrentlyEditable(): bool
+    {
+        if (!$this->allow_editing || $this->editing_locked_at) {
+            return false;
+        }
+
+        if ($this->edit_deadline && now() > $this->edit_deadline) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Get edit status information.
+     */
+    public function getEditStatus(): array
+    {
+        return [
+            'is_edited' => $this->is_edited,
+            'edit_count' => $this->edit_count,
+            'current_version' => $this->current_version,
+            'last_edited_at' => $this->last_edited_at?->toISOString(),
+            'is_locked' => $this->editing_locked_at !== null,
+            'is_editable' => $this->isCurrentlyEditable(),
+            'edit_deadline' => $this->edit_deadline?->toISOString(),
+        ];
+    }
+
+    /**
+     * Get edit summary for display.
+     */
+    public function getEditSummary(): string
+    {
+        if (!$this->is_edited) {
+            return '';
+        }
+
+        $lastEdit = collect($this->edit_history)->last();
+        if (!$lastEdit) {
+            return 'Post has been edited';
+        }
+
+        $changeTypes = $lastEdit['changes_summary'] ?? [];
+        $changeCount = count($changeTypes);
+
+        if ($changeCount === 1 && in_array('content', $changeTypes)) {
+            return 'Content edited';
+        }
+
+        if ($changeCount === 1) {
+            return ucfirst($changeTypes[0]) . ' edited';
+        }
+
+        return "{$changeCount} changes made";
     }
 
     /**

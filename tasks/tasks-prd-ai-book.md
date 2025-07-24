@@ -30,6 +30,11 @@ Based on PRD: `prd-ai-book.md`
 - `app/Services/ContentVisibilityService.php` - Comprehensive content visibility management with advanced access control and audience filtering
 - `app/Http/Controllers/Api/ContentVisibilityController.php` - Complete visibility management API with history tracking and bulk operations
 - `database/migrations/2025_01_27_000000_enhance_post_visibility_options.php` - Enhanced post visibility with close_friends, custom audience, and interaction controls
+- `app/Services/PostEditingService.php` - Advanced post editing system with version control, time limits, and comprehensive tracking
+- `app/Http/Controllers/Api/PostEditingController.php` - Complete post editing and deletion API with revision management and recovery options
+- `app/Models/PostRevision.php` - Post revision tracking model with detailed change history and diff capabilities
+- `app/Models/PostDeletionLog.php` - Post deletion logging model with restoration tracking and administrative oversight
+- `database/migrations/2025_01_28_000000_enhance_post_editing_system.php` - Comprehensive edit tracking, revision control, and deletion management
 - `app/Models/Comment.php` - Comment model with nested replies support
 - `app/Models/Friendship.php` - Friend relationship model
 - `app/Models/Message.php` - Private messaging model
@@ -157,7 +162,7 @@ Based on PRD: `prd-ai-book.md`
   - [x] 3.3 Implement image upload with automatic compression and validation
   - [x] 3.4 Add video upload with size limits and format conversion
   - [x] 3.5 Create content visibility settings (public, friends, private)
-  - [ ] 3.6 Build post editing and deletion functionality
+  - [x] 3.6 Build post editing and deletion functionality
   - [ ] 3.7 Develop chronological feed API with pagination
   - [ ] 3.8 Create Vue 3 post creation and editing components
   - [ ] 3.9 Build responsive feed display with lazy loading
