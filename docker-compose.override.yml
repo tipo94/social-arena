@@ -1,0 +1,60 @@
+services:
+  app:
+    build:
+      args:
+        INSTALL_XDEBUG: true
+    environment:
+      - PHP_IDE_CONFIG=serverName=laravel-app
+      - XDEBUG_MODE=develop,debug,coverage
+      - XDEBUG_CONFIG=client_host=host.docker.internal client_port=9003 idekey=PHPSTORM
+    volumes:
+      - ./:/var/www/html
+      - ./docker/php/xdebug.ini:/usr/local/etc/php/conf.d/xdebug.ini
+
+  database:
+    environment:
+      - MYSQL_GENERAL_LOG=1
+      - MYSQL_SLOW_QUERY_LOG=1
+    ports:
+      - "3306:3306"
+
+  redis:
+    command: redis-server --appendonly yes --notify-keyspace-events Ex
+    volumes:
+      - redis_data:/data
+
+  # Development tools
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: laravel-phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: database
+      PMA_PORT: 3306
+      PMA_USER: laravel
+      PMA_PASSWORD: secret
+    ports:
+      - "8080:80"
+    networks:
+      - laravel
+    depends_on:
+      database:
+        condition: service_healthy
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: laravel-redis-commander
+    restart: unless-stopped
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - "8081:8081"
+    networks:
+      - laravel
+    depends_on:
+      redis:
+        condition: service_healthy
+
+volumes:
+  redis_data:
+  node_modules: 

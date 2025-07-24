@@ -1,0 +1,36 @@
+{
+  "extends": "@vue/tsconfig/tsconfig.dom.json",
+  "include": [
+    "env.d.ts",
+    "resources/js/**/*",
+    "resources/js/**/*.vue"
+  ],
+  "exclude": [
+    "node_modules",
+    "vendor",
+    "public"
+  ],
+  "compilerOptions": {
+    "composite": true,
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./resources/js/*"]
+    },
+    "types": [
+      "node"
+    ],
+    "allowJs": true,
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "moduleResolution": "bundler",
+    "module": "ESNext",
+    "target": "ES2020",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "preserve"
+  }
+} 
