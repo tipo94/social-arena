@@ -181,6 +181,31 @@ Route::prefix('social')->middleware(['auth:sanctum'])->group(function () {
 
 /*
 |--------------------------------------------------------------------------
+| Post Management Routes  
+|--------------------------------------------------------------------------
+*/
+Route::prefix('posts')->middleware(['auth:sanctum'])->group(function () {
+    // Main CRUD operations
+    Route::get('/', [App\Http\Controllers\Api\PostController::class, 'index']); // Feed
+    Route::post('/', [App\Http\Controllers\Api\PostController::class, 'store']); // Create post
+    Route::get('/{post}', [App\Http\Controllers\Api\PostController::class, 'show']); // Get specific post
+    Route::put('/{post}', [App\Http\Controllers\Api\PostController::class, 'update']); // Update post
+    Route::delete('/{post}', [App\Http\Controllers\Api\PostController::class, 'destroy']); // Delete post
+    
+    // Post interactions
+    Route::post('/{post}/like', [App\Http\Controllers\Api\PostController::class, 'toggleLike']); // Like/unlike
+    Route::post('/{post}/report', [App\Http\Controllers\Api\PostController::class, 'report']); // Report post
+    
+    // Analytics and insights
+    Route::get('/{post}/analytics', [App\Http\Controllers\Api\PostController::class, 'analytics']); // Post analytics
+    
+    // Specific feeds
+    Route::get('/user/{user}', [App\Http\Controllers\Api\PostController::class, 'userPosts']); // User's posts
+    Route::get('/group/{groupId}', [App\Http\Controllers\Api\PostController::class, 'groupPosts']); // Group posts
+});
+
+/*
+|--------------------------------------------------------------------------
 | Messaging Routes
 |--------------------------------------------------------------------------
 */

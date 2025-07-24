@@ -14,6 +14,13 @@ Based on PRD: `prd-ai-book.md`
 - `app/Models/User.php` - User model with HasApiTokens trait for Sanctum authentication
 - `app/Models/Post.php` - Complete Post model with media attachments, visibility settings, and comprehensive helper methods
 - `app/Models/MediaAttachment.php` - Media attachment model for handling file uploads (images, videos, documents)
+- `app/Http/Controllers/Api/PostController.php` - Comprehensive post management API with CRUD, interactions, and analytics
+- `app/Http/Requests/CreatePostRequest.php` - Post creation validation with type-specific rules and security checks
+- `app/Http/Requests/UpdatePostRequest.php` - Post update validation with optional field handling
+- `app/Http/Resources/PostResource.php` - Rich post API responses with user permissions and engagement data
+- `app/Http/Resources/MediaAttachmentResource.php` - Media attachment API responses with URLs and metadata
+- `app/Http/Resources/CommentResource.php` - Comment API responses with nested reply support
+- `app/Services/TextFormattingService.php` - Advanced text processing with markdown, mentions, hashtags, and spam detection
 - `app/Models/Comment.php` - Comment model with nested replies support
 - `app/Models/Friendship.php` - Friend relationship model
 - `app/Models/Message.php` - Private messaging model
@@ -137,7 +144,7 @@ Based on PRD: `prd-ai-book.md`
 
 - [ ] 3.0 Core Content Management and Social Feed
   - [x] 3.1 Create Post model with content, media, and visibility fields
-  - [ ] 3.2 Build post creation API with text formatting support
+  - [x] 3.2 Build post creation API with text formatting support
   - [ ] 3.3 Implement image upload with automatic compression and validation
   - [ ] 3.4 Add video upload with size limits and format conversion
   - [ ] 3.5 Create content visibility settings (public, friends, private)
