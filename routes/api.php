@@ -228,6 +228,33 @@ Route::prefix('messages')->middleware(['auth:sanctum'])->group(function () {
 
 /*
 |--------------------------------------------------------------------------
+| Advanced Feed System Routes (NEW in 3.7)
+|--------------------------------------------------------------------------
+*/
+Route::prefix('feed')->middleware(['auth:sanctum'])->group(function () {
+    // Main feed endpoints
+    Route::get('/', [App\Http\Controllers\Api\FeedController::class, 'index']);
+    Route::get('/chronological', [App\Http\Controllers\Api\FeedController::class, 'chronological']);
+    Route::get('/algorithmic', [App\Http\Controllers\Api\FeedController::class, 'algorithmic']);
+    Route::get('/following', [App\Http\Controllers\Api\FeedController::class, 'following']);
+    Route::get('/trending', [App\Http\Controllers\Api\FeedController::class, 'trending']);
+    Route::get('/discover', [App\Http\Controllers\Api\FeedController::class, 'discover']);
+    Route::get('/bookmarks', [App\Http\Controllers\Api\FeedController::class, 'bookmarks']);
+    
+    // Feed management and analytics
+    Route::get('/types', [App\Http\Controllers\Api\FeedController::class, 'types']);
+    Route::get('/stats', [App\Http\Controllers\Api\FeedController::class, 'stats']);
+    Route::get('/health', [App\Http\Controllers\Api\FeedController::class, 'health']);
+    Route::get('/recommendations', [App\Http\Controllers\Api\FeedController::class, 'recommendations']);
+    
+    // User preferences and interactions
+    Route::put('/preferences', [App\Http\Controllers\Api\FeedController::class, 'updatePreferences']);
+    Route::post('/refresh', [App\Http\Controllers\Api\FeedController::class, 'refresh']);
+    Route::post('/mark-seen', [App\Http\Controllers\Api\FeedController::class, 'markSeen']);
+});
+
+/*
+|--------------------------------------------------------------------------
 | Admin Routes
 |--------------------------------------------------------------------------
 */
