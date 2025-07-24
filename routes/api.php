@@ -95,10 +95,17 @@ Route::prefix('auth')->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::prefix('media')->middleware(['auth:sanctum'])->group(function () {
-    // Image processing endpoints (new advanced functionality)
+    // Image processing endpoints (advanced functionality)
     Route::post('/upload-images', [App\Http\Controllers\Api\MediaController::class, 'uploadImages']);
     Route::post('/compress-image', [App\Http\Controllers\Api\MediaController::class, 'compressImage']);
     Route::get('/processing-status', [App\Http\Controllers\Api\MediaController::class, 'getProcessingStatus']);
+    
+    // Video processing endpoints (new in 3.4)
+    Route::post('/upload-videos', [App\Http\Controllers\Api\MediaController::class, 'uploadVideos']);
+    Route::get('/video-processing-status', [App\Http\Controllers\Api\MediaController::class, 'getVideoProcessingStatus']);
+    Route::post('/convert-video', [App\Http\Controllers\Api\MediaController::class, 'convertVideo']);
+    Route::post('/generate-video-thumbnail', [App\Http\Controllers\Api\MediaController::class, 'generateVideoThumbnail']);
+    Route::get('/video-metadata', [App\Http\Controllers\Api\MediaController::class, 'getVideoMetadata']);
     
     // Legacy endpoints (backward compatibility)
     Route::post('/upload-image', [App\Http\Controllers\Api\MediaController::class, 'uploadImage']);

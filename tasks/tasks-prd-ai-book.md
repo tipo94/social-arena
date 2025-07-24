@@ -24,6 +24,9 @@ Based on PRD: `prd-ai-book.md`
 - `app/Services/ImageProcessingService.php` - Advanced image processing with compression, resizing, watermarks, and optimization
 - `app/Http/Requests/ImageUploadRequest.php` - Comprehensive image upload validation with security checks and size limits
 - `app/Jobs/ProcessImageJob.php` - Background job for processing large images and creating variants
+- `app/Services/VideoProcessingService.php` - Professional video processing with FFmpeg integration, format conversion, and compression
+- `app/Http/Requests/VideoUploadRequest.php` - Comprehensive video upload validation with size limits and format checks
+- `app/Jobs/ProcessVideoJob.php` - Background job for heavy video processing operations with progress tracking
 - `app/Models/Comment.php` - Comment model with nested replies support
 - `app/Models/Friendship.php` - Friend relationship model
 - `app/Models/Message.php` - Private messaging model
@@ -149,7 +152,7 @@ Based on PRD: `prd-ai-book.md`
   - [x] 3.1 Create Post model with content, media, and visibility fields
   - [x] 3.2 Build post creation API with text formatting support
   - [x] 3.3 Implement image upload with automatic compression and validation
-  - [ ] 3.4 Add video upload with size limits and format conversion
+  - [x] 3.4 Add video upload with size limits and format conversion
   - [ ] 3.5 Create content visibility settings (public, friends, private)
   - [ ] 3.6 Build post editing and deletion functionality
   - [ ] 3.7 Develop chronological feed API with pagination
