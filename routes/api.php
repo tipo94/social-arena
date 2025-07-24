@@ -95,6 +95,12 @@ Route::prefix('auth')->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::prefix('media')->middleware(['auth:sanctum'])->group(function () {
+    // Image processing endpoints (new advanced functionality)
+    Route::post('/upload-images', [App\Http\Controllers\Api\MediaController::class, 'uploadImages']);
+    Route::post('/compress-image', [App\Http\Controllers\Api\MediaController::class, 'compressImage']);
+    Route::get('/processing-status', [App\Http\Controllers\Api\MediaController::class, 'getProcessingStatus']);
+    
+    // Legacy endpoints (backward compatibility)
     Route::post('/upload-image', [App\Http\Controllers\Api\MediaController::class, 'uploadImage']);
     Route::post('/upload-file', [App\Http\Controllers\Api\MediaController::class, 'uploadFile']);
     Route::post('/file-info', [App\Http\Controllers\Api\MediaController::class, 'getFileInfo']);

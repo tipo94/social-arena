@@ -21,6 +21,9 @@ Based on PRD: `prd-ai-book.md`
 - `app/Http/Resources/MediaAttachmentResource.php` - Media attachment API responses with URLs and metadata
 - `app/Http/Resources/CommentResource.php` - Comment API responses with nested reply support
 - `app/Services/TextFormattingService.php` - Advanced text processing with markdown, mentions, hashtags, and spam detection
+- `app/Services/ImageProcessingService.php` - Advanced image processing with compression, resizing, watermarks, and optimization
+- `app/Http/Requests/ImageUploadRequest.php` - Comprehensive image upload validation with security checks and size limits
+- `app/Jobs/ProcessImageJob.php` - Background job for processing large images and creating variants
 - `app/Models/Comment.php` - Comment model with nested replies support
 - `app/Models/Friendship.php` - Friend relationship model
 - `app/Models/Message.php` - Private messaging model
@@ -145,7 +148,7 @@ Based on PRD: `prd-ai-book.md`
 - [ ] 3.0 Core Content Management and Social Feed
   - [x] 3.1 Create Post model with content, media, and visibility fields
   - [x] 3.2 Build post creation API with text formatting support
-  - [ ] 3.3 Implement image upload with automatic compression and validation
+  - [x] 3.3 Implement image upload with automatic compression and validation
   - [ ] 3.4 Add video upload with size limits and format conversion
   - [ ] 3.5 Create content visibility settings (public, friends, private)
   - [ ] 3.6 Build post editing and deletion functionality
