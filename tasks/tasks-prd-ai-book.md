@@ -27,6 +27,9 @@ Based on PRD: `prd-ai-book.md`
 - `app/Services/VideoProcessingService.php` - Professional video processing with FFmpeg integration, format conversion, and compression
 - `app/Http/Requests/VideoUploadRequest.php` - Comprehensive video upload validation with size limits and format checks
 - `app/Jobs/ProcessVideoJob.php` - Background job for heavy video processing operations with progress tracking
+- `app/Services/ContentVisibilityService.php` - Comprehensive content visibility management with advanced access control and audience filtering
+- `app/Http/Controllers/Api/ContentVisibilityController.php` - Complete visibility management API with history tracking and bulk operations
+- `database/migrations/2025_01_27_000000_enhance_post_visibility_options.php` - Enhanced post visibility with close_friends, custom audience, and interaction controls
 - `app/Models/Comment.php` - Comment model with nested replies support
 - `app/Models/Friendship.php` - Friend relationship model
 - `app/Models/Message.php` - Private messaging model
@@ -153,7 +156,7 @@ Based on PRD: `prd-ai-book.md`
   - [x] 3.2 Build post creation API with text formatting support
   - [x] 3.3 Implement image upload with automatic compression and validation
   - [x] 3.4 Add video upload with size limits and format conversion
-  - [ ] 3.5 Create content visibility settings (public, friends, private)
+  - [x] 3.5 Create content visibility settings (public, friends, private)
   - [ ] 3.6 Build post editing and deletion functionality
   - [ ] 3.7 Develop chronological feed API with pagination
   - [ ] 3.8 Create Vue 3 post creation and editing components

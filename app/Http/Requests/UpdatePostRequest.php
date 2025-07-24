@@ -23,7 +23,7 @@ class UpdatePostRequest extends FormRequest
         return [
             'content' => 'sometimes|string|max:5000',
             'type' => 'sometimes|string|in:text,image,video,link,book_review,poll',
-            'visibility' => 'sometimes|string|in:public,friends,private,group',
+            'visibility' => 'sometimes|string|in:public,friends,close_friends,friends_of_friends,private,group,custom',
             'group_id' => [
                 'sometimes',
                 'integer',
@@ -49,6 +49,12 @@ class UpdatePostRequest extends FormRequest
             'metadata.poll_expires_at' => 'sometimes|date|after:now',
             'media_ids' => 'sometimes|array|max:10',
             'media_ids.*' => 'integer|exists:media_attachments,id',
+            'custom_audience' => 'sometimes|array|max:100',
+            'custom_audience.*' => 'integer|exists:users,id',
+            'allow_resharing' => 'sometimes|boolean',
+            'allow_comments' => 'sometimes|boolean',
+            'allow_reactions' => 'sometimes|boolean',
+            'visibility_expires_at' => 'sometimes|date|after:now|before:' . now()->addMonths(3),
             'scheduled_at' => 'sometimes|date|after:now|before:' . now()->addYear(),
             'tags' => 'sometimes|array|max:20',
             'tags.*' => 'string|max:50|regex:/^[a-zA-Z0-9_]+$/',

@@ -308,7 +308,7 @@ class User extends Authenticatable
      */
     public function isAdmin(): bool
     {
-        return $this->hasRole('admin') || $this->hasRole('super_admin');
+        return in_array($this->role, ['admin', 'super_admin']) || $this->hasRole('admin') || $this->hasRole('super_admin');
     }
 
     /**

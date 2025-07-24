@@ -108,7 +108,8 @@ class PostController extends Controller
 
             // Set default visibility based on user's profile settings
             if (!isset($validated['visibility'])) {
-                $validated['visibility'] = $user->profile->post_visibility_default ?? 'public';
+                $visibilityService = app(\App\Services\ContentVisibilityService::class);
+                $validated['visibility'] = $visibilityService->getDefaultVisibilityForUser($user, 'post');
             }
 
             // Handle scheduled posts

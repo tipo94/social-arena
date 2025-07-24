@@ -24,7 +24,7 @@ class CreatePostRequest extends FormRequest
         return [
             'content' => 'required_without:media_ids|string|max:5000',
             'type' => 'sometimes|string|in:text,image,video,link,book_review,poll',
-            'visibility' => 'sometimes|string|in:public,friends,private,group',
+            'visibility' => 'sometimes|string|in:public,friends,close_friends,friends_of_friends,private,group,custom',
             'group_id' => [
                 'sometimes',
                 'integer',
@@ -53,6 +53,12 @@ class CreatePostRequest extends FormRequest
             'scheduled_at' => 'sometimes|date|after:now|before:' . now()->addYear(),
             'tags' => 'sometimes|array|max:20',
             'tags.*' => 'string|max:50|regex:/^[a-zA-Z0-9_]+$/',
+            'custom_audience' => 'sometimes|array|max:100',
+            'custom_audience.*' => 'integer|exists:users,id',
+            'allow_resharing' => 'sometimes|boolean',
+            'allow_comments' => 'sometimes|boolean',
+            'allow_reactions' => 'sometimes|boolean',
+            'visibility_expires_at' => 'sometimes|date|after:now|before:' . now()->addMonths(3),
         ];
     }
 

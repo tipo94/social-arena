@@ -28,9 +28,18 @@ class Post extends Model
         'type',
         'metadata',
         'visibility',
+        'custom_audience',
+        'allow_resharing',
+        'allow_comments',
+        'allow_reactions',
+        'visibility_expires_at',
+        'visibility_history',
+        'visibility_changed_at',
         'likes_count',
         'comments_count',
         'shares_count',
+        'views_count',
+        'reach_count',
         'is_reported',
         'is_hidden',
         'moderated_at',
@@ -46,11 +55,18 @@ class Post extends Model
      */
     protected $casts = [
         'metadata' => 'array',
+        'custom_audience' => 'array',
+        'visibility_history' => 'array',
+        'allow_resharing' => 'boolean',
+        'allow_comments' => 'boolean',
+        'allow_reactions' => 'boolean',
         'is_reported' => 'boolean',
         'is_hidden' => 'boolean',
         'is_scheduled' => 'boolean',
         'moderated_at' => 'datetime',
         'published_at' => 'datetime',
+        'visibility_expires_at' => 'datetime',
+        'visibility_changed_at' => 'datetime',
     ];
 
     /**
@@ -226,14 +242,14 @@ class Post extends Model
             return true;
         }
 
-        // Check visibility settings
-        return match ($this->visibility) {
-            'public' => true,
-            'friends' => $user && $this->user->isFriendsWith($user),
-            'group' => $user && $this->group && $this->group->memberships()->where('user_id', $user->id)->where('status', 'approved')->exists(),
-            'private' => false,
-            default => false,
-        };
+        // Check if post visibility has expired
+        if ($this->visibility_expires_at && $this->visibility_expires_at->isPast()) {
+            return false;
+        }
+
+        // Use ContentVisibilityService for comprehensive visibility checking
+        $visibilityService = app(\App\Services\ContentVisibilityService::class);
+        return $visibilityService->isPostVisibleTo($this, $user);
     }
 
     /**
@@ -308,6 +324,153 @@ class Post extends Model
     }
 
     /**
+     * Increment the views count.
+     */
+    public function incrementViews(): void
+    {
+        $this->increment('views_count');
+    }
+
+    /**
+     * Increment the reach count.
+     */
+    public function incrementReach(): void
+    {
+        $this->increment('reach_count');
+    }
+
+    /**
+     * Update post visibility with history tracking.
+     */
+    public function updateVisibility(string $newVisibility, ?User $user = null, array $customAudience = []): bool
+    {
+        $oldVisibility = $this->visibility;
+        
+        // Track visibility change in history
+        $historyEntry = [
+            'from' => $oldVisibility,
+            'to' => $newVisibility,
+            'changed_by' => $user?->id,
+            'changed_at' => now()->toISOString(),
+            'custom_audience' => $customAudience,
+        ];
+
+        $history = $this->visibility_history ?? [];
+        $history[] = $historyEntry;
+
+        $this->update([
+            'visibility' => $newVisibility,
+            'custom_audience' => $newVisibility === 'custom' ? $customAudience : null,
+            'visibility_history' => $history,
+            'visibility_changed_at' => now(),
+        ]);
+
+        return true;
+    }
+
+    /**
+     * Check if post allows specific interaction.
+     */
+    public function allowsInteraction(string $interactionType): bool
+    {
+        return match ($interactionType) {
+            'comment' => $this->allow_comments,
+            'reaction', 'like' => $this->allow_reactions,
+            'share', 'reshare' => $this->allow_resharing,
+            default => false,
+        };
+    }
+
+    /**
+     * Check if post is temporary (has expiring visibility).
+     */
+    public function isTemporary(): bool
+    {
+        return $this->visibility_expires_at !== null;
+    }
+
+    /**
+     * Check if post visibility has expired.
+     */
+    public function hasExpiredVisibility(): bool
+    {
+        return $this->isTemporary() && $this->visibility_expires_at->isPast();
+    }
+
+    /**
+     * Get audience summary for this post.
+     */
+    public function getAudienceSummary(): array
+    {
+        $visibilityService = app(\App\Services\ContentVisibilityService::class);
+        return $visibilityService->getContentAudience($this);
+    }
+
+    /**
+     * Scope for posts that allow specific interactions.
+     */
+    public function scopeAllowingInteraction(Builder $query, string $interactionType): Builder
+    {
+        $column = match ($interactionType) {
+            'comment' => 'allow_comments',
+            'reaction', 'like' => 'allow_reactions',
+            'share', 'reshare' => 'allow_resharing',
+            default => null,
+        };
+
+        if (!$column) {
+            return $query->whereRaw('0 = 1'); // Return no results for invalid interaction type
+        }
+
+        return $query->where($column, true);
+    }
+
+    /**
+     * Scope for posts with specific visibility.
+     */
+    public function scopeWithVisibility(Builder $query, string|array $visibility): Builder
+    {
+        if (is_array($visibility)) {
+            return $query->whereIn('visibility', $visibility);
+        }
+        
+        return $query->where('visibility', $visibility);
+    }
+
+    /**
+     * Scope for temporary posts (with expiring visibility).
+     */
+    public function scopeTemporary(Builder $query): Builder
+    {
+        return $query->whereNotNull('visibility_expires_at');
+    }
+
+    /**
+     * Scope for posts where visibility has expired.
+     */
+    public function scopeExpiredVisibility(Builder $query): Builder
+    {
+        return $query->whereNotNull('visibility_expires_at')
+                    ->where('visibility_expires_at', '<', now());
+    }
+
+    /**
+     * Scope for posts that are shareable.
+     */
+    public function scopeShareable(Builder $query): Builder
+    {
+        return $query->where('allow_resharing', true);
+    }
+
+    /**
+     * Scope for posts that allow comments.
+     */
+    public function scopeCommentable(Builder $query): Builder
+    {
+        return $query->where('allow_comments', true);
+    }
+
+    /**
      * Scope for published posts only.
      */
     public function scopePublished(Builder $query): Builder
@@ -334,27 +497,9 @@ class Post extends Model
             return $query->where('visibility', 'public');
         }
 
-        return $query->where(function ($q) use ($user) {
-            $q->where('visibility', 'public')
-              ->orWhere('user_id', $user->id) // User's own posts
-              ->orWhere(function ($sq) use ($user) {
-                  // Friends-only posts from friends
-                  $sq->where('visibility', 'friends')
-                     ->whereHas('user.sentFriendRequests', function ($fr) use ($user) {
-                         $fr->where('friend_id', $user->id)->where('status', 'accepted');
-                     })
-                     ->orWhereHas('user.receivedFriendRequests', function ($fr) use ($user) {
-                         $fr->where('user_id', $user->id)->where('status', 'accepted');
-                     });
-              })
-              ->orWhere(function ($sq) use ($user) {
-                  // Group posts from groups user is a member of
-                  $sq->where('visibility', 'group')
-                     ->whereHas('group.memberships', function ($gm) use ($user) {
-                         $gm->where('user_id', $user->id)->where('status', 'approved');
-                     });
-              });
-        });
+        // Use ContentVisibilityService for more comprehensive filtering
+        $visibilityService = app(\App\Services\ContentVisibilityService::class);
+        return $visibilityService->applyPostVisibilityFilter($query, $user);
     }
 
     /**
