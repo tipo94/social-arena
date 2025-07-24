@@ -75,8 +75,12 @@ class UserProfile extends Model
         'books_read_count',
         'reviews_written_count',
         'friends_count',
+        'followers_count',
+        'following_count',
         'groups_count',
         'posts_count',
+        'show_followers',
+        'show_following',
         'profile_completion_percentage',
         'is_verified',
         'verified_at',
@@ -109,6 +113,8 @@ class UserProfile extends Model
         'show_online_status' => 'boolean',
         'show_last_activity' => 'boolean',
         'show_mutual_friends' => 'boolean',
+        'show_followers' => 'boolean',
+        'show_following' => 'boolean',
         
         // Notification settings
         'email_notifications' => 'boolean',

@@ -3,6 +3,9 @@ import App from './App.vue'
 import router from './router'
 import { pinia, initializeStores } from './stores'
 
+// Bootstrap axios configuration (must be imported before stores)
+import './bootstrap'
+
 // CSS
 import '../css/app.css'
 

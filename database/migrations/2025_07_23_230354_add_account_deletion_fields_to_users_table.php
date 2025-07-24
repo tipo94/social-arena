@@ -13,11 +13,11 @@ return new class extends Migration
     {
         Schema::table('users', function (Blueprint $table) {
             // Account deletion fields
-            $table->timestamp('deletion_requested_at')->nullable()->after('subscription_expires_at')->comment('When account deletion was requested');
-            $table->text('deletion_reason')->nullable()->after('deletion_requested_at')->comment('User-provided reason for deletion');
-            $table->timestamp('will_be_deleted_at')->nullable()->after('deletion_reason')->comment('Scheduled deletion date after grace period');
-            $table->timestamp('deletion_failed_at')->nullable()->after('will_be_deleted_at')->comment('When deletion process failed');
-            $table->text('deletion_failure_reason')->nullable()->after('deletion_failed_at')->comment('Reason for deletion failure');
+            $table->timestamp('deletion_requested_at')->nullable()->comment('When account deletion was requested');
+            $table->text('deletion_reason')->nullable()->comment('User-provided reason for deletion');
+            $table->timestamp('will_be_deleted_at')->nullable()->comment('Scheduled deletion date after grace period');
+            $table->timestamp('deletion_failed_at')->nullable()->comment('When deletion process failed');
+            $table->text('deletion_failure_reason')->nullable()->comment('Reason for deletion failure');
 
             // Indexes for deletion queries
             $table->index(['deletion_requested_at']);

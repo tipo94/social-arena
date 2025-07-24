@@ -14,6 +14,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class PostController extends Controller
 {
@@ -286,38 +287,295 @@ class PostController extends Controller
     }
 
     /**
-     * Like or unlike a post.
+     * Share or repost a post.
      */
-    public function toggleLike(Post $post): JsonResponse
+    public function share(Request $request, Post $post): JsonResponse
+    {
+        $request->validate([
+            'share_type' => 'sometimes|string|in:repost,quote_repost,external,link_share,private_share',
+            'platform' => 'sometimes|string|in:twitter,facebook,linkedin,reddit,whatsapp,telegram',
+            'content' => 'sometimes|string|max:500',
+            'shared_to_user_id' => 'sometimes|integer|exists:users,id',
+            'shared_to_group_id' => 'sometimes|integer|exists:groups,id',
+            'visibility' => 'sometimes|string|in:public,friends,private',
+            'is_quote_share' => 'sometimes|boolean',
+        ]);
+
+        try {
+            $user = Auth::user();
+
+            // Check if user can view the post
+            if (!$post->isVisibleTo($user)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Post not found or not accessible',
+                ], 404);
+            }
+
+            // Check if post allows resharing
+            if (!$post->allow_resharing) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This post cannot be shared',
+                ], 403);
+            }
+
+            // Prevent users from reposting their own content (for internal shares)
+            $shareType = $request->input('share_type', 'external');
+            if (in_array($shareType, ['repost', 'quote_repost', 'internal']) && $post->user_id === $user->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You cannot repost your own content',
+                ], 422);
+            }
+
+            // Check for existing share to prevent duplicates (for internal shares)
+            if (in_array($shareType, ['repost', 'quote_repost', 'internal'])) {
+                $existingShare = \App\Models\Share::where([
+                    'user_id' => $user->id,
+                    'shareable_id' => $post->id,
+                    'shareable_type' => Post::class,
+                    'share_type' => $shareType,
+                ])->first();
+
+                if ($existingShare) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'You have already shared this post',
+                    ], 422);
+                }
+            }
+
+            DB::beginTransaction();
+
+            // Create share record
+            $shareData = [
+                'user_id' => $user->id,
+                'shareable_id' => $post->id,
+                'shareable_type' => Post::class,
+                'share_type' => $shareType,
+                'platform' => $request->input('platform'),
+                'content' => $request->input('content'),
+                'shared_to_user_id' => $request->input('shared_to_user_id'),
+                'shared_to_group_id' => $request->input('shared_to_group_id'),
+                'visibility' => $request->input('visibility', $shareType === 'private_share' ? 'private' : 'public'),
+                'is_quote_share' => $request->boolean('is_quote_share') || !empty($request->input('content')),
+                'is_private_share' => !empty($request->input('shared_to_user_id')),
+            ];
+
+            $share = \App\Models\Share::create($shareData);
+
+            DB::commit();
+
+            // Load relationships for response
+            $share->load(['user', 'shareable', 'sharedToUser', 'sharedToGroup']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Content shared successfully',
+                'data' => [
+                    'share_id' => $share->id,
+                    'share_type' => $share->share_type,
+                    'platform' => $share->platform,
+                    'is_quote_share' => $share->is_quote_share,
+                    'shares_count' => $post->fresh()->shares_count,
+                    'share_url' => $share->getShareUrl(),
+                    'shared_at' => $share->shared_at->toISOString(),
+                ],
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to share content',
+                'error' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    /**
+     * Get shares for a specific post.
+     */
+    public function shares(Request $request, Post $post): JsonResponse
+    {
+        $request->validate([
+            'type' => 'sometimes|string|in:all,reposts,external,quote_shares',
+            'per_page' => 'sometimes|integer|min:1|max:50',
+        ]);
+
+        try {
+            $user = Auth::user();
+
+            // Check if user can view the post
+            if (!$post->isVisibleTo($user)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Post not found or not accessible',
+                ], 404);
+            }
+
+            $query = \App\Models\Share::where([
+                'shareable_id' => $post->id,
+                'shareable_type' => Post::class,
+            ])
+            ->with(['user', 'sharedToUser', 'sharedToGroup'])
+            ->visibleTo($user)
+            ->orderBy('shared_at', 'desc');
+
+            // Filter by type
+            $type = $request->input('type', 'all');
+            switch ($type) {
+                case 'reposts':
+                    $query->reposts();
+                    break;
+                case 'external':
+                    $query->external();
+                    break;
+                case 'quote_shares':
+                    $query->quoteShares();
+                    break;
+            }
+
+            $perPage = $request->integer('per_page', 20);
+            $shares = $query->paginate($perPage);
+
+                         return response()->json([
+                 'success' => true,
+                 'data' => [
+                     'shares' => \App\Http\Resources\ShareResource::collection($shares->items()),
+                    'pagination' => [
+                        'current_page' => $shares->currentPage(),
+                        'last_page' => $shares->lastPage(),
+                        'per_page' => $shares->perPage(),
+                        'total' => $shares->total(),
+                        'has_more_pages' => $shares->hasMorePages(),
+                    ],
+                    'type_filter' => $type,
+                ],
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch shares',
+                'error' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    /**
+     * Delete a share (unshare).
+     */
+    public function unshare(Request $request, Post $post): JsonResponse
+    {
+        $request->validate([
+            'share_id' => 'sometimes|integer|exists:shares,id',
+            'share_type' => 'sometimes|string|in:repost,quote_repost,external,link_share,private_share',
+        ]);
+
+        try {
+            $user = Auth::user();
+
+            // Find the share to delete
+            $query = \App\Models\Share::where([
+                'user_id' => $user->id,
+                'shareable_id' => $post->id,
+                'shareable_type' => Post::class,
+            ]);
+
+            if ($request->has('share_id')) {
+                $query->where('id', $request->input('share_id'));
+            } elseif ($request->has('share_type')) {
+                $query->where('share_type', $request->input('share_type'));
+            } else {
+                // Delete most recent share
+                $query->orderBy('shared_at', 'desc');
+            }
+
+            $share = $query->first();
+
+            if (!$share) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Share not found',
+                ], 404);
+            }
+
+            DB::beginTransaction();
+
+            $share->delete();
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Share removed successfully',
+                'data' => [
+                    'shares_count' => $post->fresh()->shares_count,
+                    'unshared_at' => now()->toISOString(),
+                ],
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to remove share',
+                'error' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    /**
+     * Toggle like/unlike for a post.
+     */
+    public function toggleLike(Request $request, Post $post): JsonResponse
     {
         $user = Auth::user();
-
+        
+        // Check if user can interact with this post
         if (!$post->isVisibleTo($user)) {
-            abort(404, 'Post not found');
+            return response()->json([
+                'success' => false,
+                'message' => 'Post not found or not accessible',
+            ], 404);
         }
 
-        $existing = $post->likes()->where('user_id', $user->id)->first();
+        $existingLike = $post->likes()->where('user_id', $user->id)->first();
 
-        if ($existing) {
-            $existing->delete();
-            $post->decrementLikes();
-            $liked = false;
-            $message = 'Post unliked';
+        if ($existingLike) {
+            // Unlike the post
+            $existingLike->delete();
+            $post->decrement('likes_count');
+            $action = 'unliked';
         } else {
-            $post->likes()->create([
+            // Like the post
+            $like = $post->likes()->create([
                 'user_id' => $user->id,
-                'type' => 'like',
             ]);
-            $post->incrementLikes();
-            $liked = true;
-            $message = 'Post liked';
+            $post->increment('likes_count');
+            $action = 'liked';
+
+            // Create notification if user liked someone else's post
+            if ($post->user_id !== $user->id) {
+                try {
+                    $notificationService = app(\App\Services\NotificationService::class);
+                    $notificationService->createLikeNotification($user, $post);
+                } catch (\Exception $e) {
+                    // Log error but don't fail the like operation
+                    Log::warning('Failed to create like notification: ' . $e->getMessage());
+                }
+            }
         }
 
         return response()->json([
             'success' => true,
-            'message' => $message,
+            'message' => "Post {$action} successfully",
             'data' => [
-                'liked' => $liked,
+                'liked' => $action === 'liked',
                 'likes_count' => $post->fresh()->likes_count,
             ],
         ]);

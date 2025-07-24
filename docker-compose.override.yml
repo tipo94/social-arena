@@ -3,6 +3,8 @@ services:
     build:
       args:
         INSTALL_XDEBUG: true
+    env_file:
+      - .env
     environment:
       - PHP_IDE_CONFIG=serverName=laravel-app
       - XDEBUG_MODE=develop,debug,coverage

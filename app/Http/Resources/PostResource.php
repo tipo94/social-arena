@@ -88,10 +88,10 @@ class PostResource extends JsonResource
             
             // Timestamps
             'published_at' => $this->when($this->published_at, function () {
-                return $this->published_at->toISOString();
+                return $this->published_at?->toISOString();
             }),
-            'created_at' => $this->created_at->toISOString(),
-            'updated_at' => $this->updated_at->toISOString(),
+            'created_at' => $this->created_at?->toISOString(),
+            'updated_at' => $this->updated_at?->toISOString(),
             
             // Extracted content elements (for frontend processing)
             'mentions' => $this->when($this->content, function () {

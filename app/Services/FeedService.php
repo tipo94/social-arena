@@ -69,15 +69,16 @@ class FeedService
         $cursor = $options['cursor'] ?? null;
         $filters = $options['filters'] ?? [];
 
-        // Check cache first
+        // Temporarily disable cache to avoid serialization issues
+        // TODO: Implement proper model serialization for feed caching
         $cacheKey = $this->generateCacheKey($user, $feedType, $options);
         
-        if (!$options['bypass_cache'] ?? false) {
-            $cachedFeed = $this->getCachedFeed($cacheKey);
-            if ($cachedFeed && !$cursor) {
-                return $this->applyCursorPagination($cachedFeed, $cursor, $pageSize);
-            }
-        }
+        // if (!$options['bypass_cache'] ?? false) {
+        //     $cachedFeed = $this->getCachedFeed($cacheKey);
+        //     if ($cachedFeed && !$cursor) {
+        //         return $this->applyCursorPagination($cachedFeed, $cursor, $pageSize);
+        //     }
+        // }
 
         // Generate fresh feed
         $feed = match ($feedType) {
@@ -95,8 +96,8 @@ class FeedService
             $feed = $this->applyFilters($feed, $filters);
         }
 
-        // Cache the feed
-        $this->cacheFeed($cacheKey, $feed, $feedType);
+        // Temporarily disable caching
+        // $this->cacheFeed($cacheKey, $feed, $feedType);
 
         // Apply cursor pagination
         return $this->applyCursorPagination($feed, $cursor, $pageSize);
@@ -170,14 +171,14 @@ class FeedService
      */
     protected function generateFollowingFeed(User $user, array $options): Collection
     {
-        $friendIds = $this->getFriendIds($user);
+        $followingIds = $this->getFollowingIds($user);
         
-        if (empty($friendIds)) {
+        if (empty($followingIds)) {
             return new Collection();
         }
 
         $query = $this->getBaseFeedQuery($user)
-                      ->whereIn('user_id', $friendIds)
+                      ->whereIn('user_id', $followingIds)
                       ->orderByDesc('published_at')
                       ->orderByDesc('created_at');
 
@@ -282,14 +283,16 @@ class FeedService
         
         if ($cursor) {
             $decodedCursor = $this->decodeCursor($cursor);
-            $startIndex = $posts->search(function ($post) use ($decodedCursor) {
-                return $post->id === $decodedCursor['id'];
-            });
-            
-            if ($startIndex !== false) {
-                $startIndex = $startIndex + 1;
-            } else {
-                $startIndex = 0;
+            if (isset($decodedCursor['id'])) {
+                $startIndex = $posts->search(function ($post) use ($decodedCursor) {
+                    return $post->id === $decodedCursor['id'];
+                });
+                
+                if ($startIndex !== false) {
+                    $startIndex = $startIndex + 1;
+                } else {
+                    $startIndex = 0;
+                }
             }
         }
 
@@ -299,11 +302,13 @@ class FeedService
         $nextCursor = null;
         if ($hasMore && $paginatedPosts->isNotEmpty()) {
             $lastPost = $paginatedPosts->last();
-            $nextCursor = $this->encodeCursor([
-                'id' => $lastPost->id,
-                'timestamp' => $lastPost->published_at->timestamp,
-                'score' => $lastPost->engagement_score ?? $lastPost->published_at->timestamp,
-            ]);
+            if (isset($lastPost->id) && isset($lastPost->published_at)) {
+                $nextCursor = $this->encodeCursor([
+                    'id' => $lastPost->id,
+                    'timestamp' => $lastPost->published_at->timestamp,
+                    'score' => $lastPost->engagement_score ?? $lastPost->published_at->timestamp,
+                ]);
+            }
         }
 
         return [
@@ -394,6 +399,23 @@ class FeedService
             "user:{$user->id}:friend_ids",
             3600, // 1 hour
             fn() => $user->friends()->pluck('id')->toArray()
+        );
+    }
+
+    /**
+     * Get user's following IDs for feed filtering.
+     */
+    protected function getFollowingIds(User $user): array
+    {
+        return Cache::remember(
+            "user:{$user->id}:following_ids",
+            3600, // 1 hour
+            function () use ($user) {
+                return $user->following()
+                           ->active() // Only non-muted follows
+                           ->pluck('following_id')
+                           ->toArray();
+            }
         );
     }
 
@@ -515,8 +537,40 @@ class FeedService
     {
         try {
             $cached = Cache::get($cacheKey);
-            return $cached ? new Collection($cached) : null;
+            if (!$cached) {
+                return null;
+            }
+            
+            // Convert cached arrays back to Post models
+            $posts = collect($cached)->map(function ($postData) {
+                // Create a Post instance from the cached array data
+                $post = new Post();
+                $post->fill($postData);
+                $post->exists = true;
+                $post->setRawAttributes($postData, true);
+                
+                // Handle relationships if they exist
+                if (isset($postData['user'])) {
+                    $user = new User();
+                    $user->fill($postData['user']);
+                    $user->exists = true;
+                    $post->setRelation('user', $user);
+                }
+                
+                if (isset($postData['media_attachments'])) {
+                    $post->setRelation('mediaAttachments', collect($postData['media_attachments']));
+                }
+                
+                if (isset($postData['comments'])) {
+                    $post->setRelation('comments', collect($postData['comments']));
+                }
+                
+                return $post;
+            });
+            
+            return $posts;
         } catch (\Exception $e) {
+            // If there's any issue with cache deserialization, return null
             return null;
         }
     }
@@ -529,7 +583,27 @@ class FeedService
         $ttl = self::FEED_TYPES[$feedType]['cache_ttl'] ?? 300;
         
         try {
-            Cache::put($cacheKey, $feed->toArray(), $ttl);
+            // Convert models to arrays for caching
+            $cacheData = $feed->map(function ($post) {
+                $postArray = $post->toArray();
+                
+                // Include essential relationships
+                if ($post->relationLoaded('user')) {
+                    $postArray['user'] = $post->user->toArray();
+                }
+                
+                if ($post->relationLoaded('mediaAttachments')) {
+                    $postArray['media_attachments'] = $post->mediaAttachments->toArray();
+                }
+                
+                if ($post->relationLoaded('comments')) {
+                    $postArray['comments'] = $post->comments->toArray();
+                }
+                
+                return $postArray;
+            })->toArray();
+            
+            Cache::put($cacheKey, $cacheData, $ttl);
         } catch (\Exception $e) {
             // Log error but don't fail the request
         }

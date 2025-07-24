@@ -63,8 +63,8 @@ class CommentResource extends JsonResource
             'is_hidden' => $this->is_hidden,
             
             // Timestamps
-            'created_at' => $this->created_at->toISOString(),
-            'updated_at' => $this->updated_at->toISOString(),
+            'created_at' => $this->created_at?->toISOString(),
+            'updated_at' => $this->updated_at?->toISOString(),
             
             // Extracted content elements
             'mentions' => $this->when($this->content, function () {

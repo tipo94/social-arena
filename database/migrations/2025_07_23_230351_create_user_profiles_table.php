@@ -57,6 +57,8 @@ return new class extends Migration
             $table->unsignedInteger('books_read_count')->default(0);
             $table->unsignedInteger('reviews_written_count')->default(0);
             $table->unsignedInteger('friends_count')->default(0);
+            $table->unsignedInteger('followers_count')->default(0);
+            $table->unsignedInteger('following_count')->default(0);
             $table->unsignedInteger('groups_count')->default(0);
             $table->unsignedInteger('posts_count')->default(0);
             
@@ -81,7 +83,10 @@ return new class extends Migration
             $table->index(['profile_completion_percentage', 'is_active']); // Profile completion
             
             // Full-text search for user discovery
-            $table->fullText(['bio'], 'user_profiles_search');
+            // Full-text search capabilities for bio (MySQL/PostgreSQL only)
+            if (config('database.default') !== 'sqlite') {
+                $table->fullText(['bio'], 'user_profiles_search');
+            }
             
             // Composite indexes for complex queries
             $table->index(['is_active', 'is_private_profile', 'friends_count']); // Popular public users

@@ -9,6 +9,7 @@ import Login from '@/pages/auth/Login.vue'
 import Register from '@/pages/auth/Register.vue'
 import Profile from '@/pages/auth/Profile.vue'
 import Dashboard from '@/pages/Dashboard.vue'
+import People from '@/pages/People.vue'
 import NotFound from '@/pages/NotFound.vue'
 import DesignSystem from '@/pages/DesignSystem.vue'
 
@@ -93,6 +94,16 @@ const routes: Array<RouteRecordRaw> = [
     component: Dashboard,
     meta: {
       title: 'Dashboard - AI-Book Social Network',
+      requiresAuth: true
+    }
+  },
+  // People
+  {
+    path: '/people',
+    name: 'People',
+    component: People,
+    meta: {
+      title: 'People - AI-Book Social Network',
       requiresAuth: true
     }
   },

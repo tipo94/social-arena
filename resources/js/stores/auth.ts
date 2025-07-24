@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
-import { authService } from '@/services/authService'
+import authService from '@/services/authService'
 import type { User, LoginCredentials, RegisterData, ProfileUpdateData, PasswordChangeData } from '@/types/auth'
 
 export const useAuthStore = defineStore('auth', () => {
@@ -157,9 +157,16 @@ export const useAuthStore = defineStore('auth', () => {
       } else {
         clearAuthState()
       }
-    } catch (error) {
-      console.error('Session check error:', error)
-      clearAuthState()
+    } catch (error: any) {
+      // 401 errors are expected when no session exists - handle silently
+      if (error?.response?.status === 401) {
+        // No existing session - this is normal on first visit
+        clearAuthState()
+      } else {
+        // Unexpected error - log for debugging
+        console.error('Session check error:', error)
+        clearAuthState()
+      }
     } finally {
       sessionChecked.value = true
     }

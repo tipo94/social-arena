@@ -27,7 +27,9 @@ return new class extends Migration
 
             // Social interaction settings
             $table->boolean('show_mutual_friends')->default(true)->after('show_friends_list');
-            $table->string('friends_list_visibility')->default('friends')->after('show_mutual_friends')->comment('public, friends, friends_of_friends, private');
+            $table->boolean('show_followers')->default(true)->after('show_mutual_friends');
+            $table->boolean('show_following')->default(true)->after('show_followers');
+            $table->string('friends_list_visibility')->default('friends')->after('show_following')->comment('public, friends, friends_of_friends, private');
             $table->string('who_can_see_posts')->default('friends')->after('friends_list_visibility')->comment('public, friends, close_friends, private');
             $table->string('who_can_tag_me')->default('friends')->after('who_can_see_posts')->comment('everyone, friends, friends_of_friends, nobody');
 
@@ -45,7 +47,7 @@ return new class extends Migration
             // Indexing for privacy queries
             $table->index(['profile_visibility']);
             $table->index(['search_visibility']);
-            $table->index(['allow_friend_requests', 'friend_request_visibility']);
+            $table->index(['allow_friend_requests', 'friend_request_visibility'], 'user_profiles_friend_req_idx');
         });
     }
 
@@ -58,7 +60,7 @@ return new class extends Migration
             // Drop indexes first
             $table->dropIndex(['profile_visibility']);
             $table->dropIndex(['search_visibility']);
-            $table->dropIndex(['allow_friend_requests', 'friend_request_visibility']);
+            $table->dropIndex('user_profiles_friend_req_idx');
 
             // Drop privacy fields
             $table->dropColumn([

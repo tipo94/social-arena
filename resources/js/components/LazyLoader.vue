@@ -17,7 +17,7 @@ import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 
 interface Props {
   threshold?: number
-  rootMargin?: string
+  rootMargin?: string | number
   targetClass?: string
   disabled?: boolean
 }
@@ -44,9 +44,14 @@ let observer: IntersectionObserver | null = null
 const createObserver = () => {
   if (!target.value || props.disabled) return
 
+  // Ensure rootMargin is a properly formatted string
+  const rootMargin = typeof props.rootMargin === 'number' 
+    ? `${props.rootMargin}px` 
+    : props.rootMargin
+
   const options: IntersectionObserverInit = {
     threshold: props.threshold,
-    rootMargin: props.rootMargin
+    rootMargin: rootMargin
   }
 
   observer = new IntersectionObserver((entries) => {

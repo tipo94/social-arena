@@ -186,7 +186,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { authService } from '@/services/authService'
+import authService from '@/services/authService'
 import type { ValidationErrors } from '@/types/auth'
 
 const route = useRoute()

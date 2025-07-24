@@ -165,6 +165,26 @@
             </p>
           </div>
 
+          <!-- Terms of Service Acceptance -->
+          <div class="flex items-center">
+            <input
+              id="terms_accepted"
+              v-model="formData.terms_accepted"
+              name="terms_accepted"
+              type="checkbox"
+              required
+              class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+              :class="{ 'border-red-300': errors.terms_accepted }"
+            />
+            <label for="terms_accepted" class="ml-2 block text-sm text-gray-900">
+              I agree to the 
+              <a href="/terms" target="_blank" class="text-indigo-600 hover:text-indigo-500">Terms of Service</a>
+            </label>
+          </div>
+          <p v-if="errors.terms_accepted" class="mt-1 text-sm text-red-600">
+            {{ errors.terms_accepted[0] }}
+          </p>
+
           <!-- Privacy Policy Acceptance -->
           <div class="flex items-center">
             <input
@@ -179,8 +199,6 @@
             <label for="privacy_accepted" class="ml-2 block text-sm text-gray-900">
               I agree to the 
               <a href="/privacy" target="_blank" class="text-indigo-600 hover:text-indigo-500">Privacy Policy</a>
-              and 
-              <a href="/terms" target="_blank" class="text-indigo-600 hover:text-indigo-500">Terms of Service</a>
             </label>
           </div>
           <p v-if="errors.privacy_accepted" class="mt-1 text-sm text-red-600">
@@ -278,10 +296,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch, debounce } from 'vue'
+import { ref, reactive, watch } from 'vue'
+import { debounce } from 'lodash-es'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { authService } from '@/services/authService'
+import authService from '@/services/authService'
 import type { RegisterData, ValidationErrors } from '@/types/auth'
 
 const router = useRouter()
@@ -304,6 +323,7 @@ const formData = reactive<RegisterData>({
   first_name: '',
   last_name: '',
   privacy_accepted: false,
+  terms_accepted: false,
 })
 
 const clearErrors = () => {

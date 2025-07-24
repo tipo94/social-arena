@@ -143,6 +143,24 @@ class Post extends Model
     }
 
     /**
+     * Get all of the post's shares.
+     */
+    public function shares(): MorphMany
+    {
+        return $this->morphMany(\App\Models\Share::class, 'shareable');
+    }
+
+    /**
+     * Decrement the shares count.
+     */
+    public function decrementShares(): void
+    {
+        if ($this->shares_count > 0) {
+            $this->decrement('shares_count');
+        }
+    }
+
+    /**
      * Get all of the post's media attachments.
      */
     public function mediaAttachments(): MorphMany

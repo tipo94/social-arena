@@ -10,6 +10,7 @@ use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class User extends Authenticatable
 {
@@ -167,6 +168,22 @@ class User extends Authenticatable
     }
 
     /**
+     * Get users that this user follows.
+     */
+    public function following(): HasMany
+    {
+        return $this->hasMany(Follow::class, 'follower_id');
+    }
+
+    /**
+     * Get users that follow this user.
+     */
+    public function followers(): HasMany
+    {
+        return $this->hasMany(Follow::class, 'following_id');
+    }
+
+    /**
      * Get the user's friends (both sent and received accepted friendships).
      */
     public function friends()
@@ -212,6 +229,68 @@ class User extends Authenticatable
             ->where('user_id', $user->id)
             ->where('status', 'pending')
             ->exists();
+    }
+
+    /**
+     * Check if this user is following another user.
+     */
+    public function isFollowing(User $user): bool
+    {
+        return $this->following()
+            ->where('following_id', $user->id)
+            ->exists();
+    }
+
+    /**
+     * Check if this user is followed by another user.
+     */
+    public function isFollowedBy(User $user): bool
+    {
+        return $this->followers()
+            ->where('follower_id', $user->id)
+            ->exists();
+    }
+
+    /**
+     * Follow another user.
+     */
+    public function follow(User $user, array $options = []): ?Follow
+    {
+        if ($this->id === $user->id) {
+            return null; // Can't follow yourself
+        }
+
+        return Follow::createFollow($this, $user, $options);
+    }
+
+    /**
+     * Unfollow another user.
+     */
+    public function unfollow(User $user): bool
+    {
+        return Follow::removeFollow($this, $user);
+    }
+
+    /**
+     * Get users that this user follows (just the User models).
+     */
+    public function followingUsers()
+    {
+        return $this->belongsToMany(User::class, 'follows', 'follower_id', 'following_id')
+                    ->withPivot(['followed_at', 'is_muted', 'show_notifications', 'is_close_friend'])
+                    ->withTimestamps()
+                    ->orderByPivot('followed_at', 'desc');
+    }
+
+    /**
+     * Get users that follow this user (just the User models).
+     */
+    public function followerUsers()
+    {
+        return $this->belongsToMany(User::class, 'follows', 'following_id', 'follower_id')
+                    ->withPivot(['followed_at', 'is_muted', 'show_notifications', 'is_close_friend'])
+                    ->withTimestamps()
+                    ->orderByPivot('followed_at', 'desc');
     }
 
     /**

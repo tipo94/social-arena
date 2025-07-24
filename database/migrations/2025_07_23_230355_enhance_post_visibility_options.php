@@ -12,8 +12,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // First, update the enum to include close_friends
-        DB::statement("ALTER TABLE posts MODIFY COLUMN visibility ENUM('public', 'friends', 'close_friends', 'friends_of_friends', 'private', 'group', 'custom') DEFAULT 'public'");
+        // First, update the enum to include close_friends (MySQL only - SQLite doesn't support this)
+        if (config('database.default') !== 'sqlite') {
+            DB::statement("ALTER TABLE posts MODIFY COLUMN visibility ENUM('public', 'friends', 'close_friends', 'friends_of_friends', 'private', 'group', 'custom') DEFAULT 'public'");
+        }
         
         Schema::table('posts', function (Blueprint $table) {
             // Add fields for enhanced visibility control

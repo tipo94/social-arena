@@ -15,38 +15,43 @@ class UserSeeder extends Seeder
     public function run(): void
     {
         // Create admin user
-        $admin = User::create([
-            'name' => 'AI-Book Admin',
-            'email' => 'admin@ai-book.com',
-            'email_verified_at' => now(),
-            'password' => Hash::make('password'),
-            'role' => 'admin',
-            'is_active' => true,
-            'last_login_at' => now(),
-            'last_activity_at' => now(),
-            'timezone' => 'UTC',
-            'locale' => 'en',
-            'login_count' => 15,
-        ]);
+        $admin = User::firstOrCreate(
+            ['email' => 'admin@ai-book.com'],
+            [
+                'name' => 'AI-Book Admin',
+                'email_verified_at' => now(),
+                'password' => Hash::make('password'),
+                'role' => 'admin',
+                'is_active' => true,
+                'last_login_at' => now(),
+                'last_activity_at' => now(),
+                'timezone' => 'UTC',
+                'locale' => 'en',
+                'login_count' => 15,
+            ]
+        );
 
         // Create admin profile
-        $admin->profile()->create([
-            'bio' => 'Platform administrator passionate about connecting book lovers worldwide.',
-            'location' => 'San Francisco, CA',
-            'favorite_genres' => ['Science Fiction', 'Technology', 'Business'],
-            'reading_goals' => ['Read 50 books this year', 'Explore more diverse authors'],
-            'reading_speed' => 'fast',
-            'languages' => ['English', 'Spanish'],
-            'books_read_count' => 127,
-            'reviews_written_count' => 89,
-            'friends_count' => 0, // Will be updated by relationships
-            'groups_count' => 0, // Will be updated by memberships
-            'posts_count' => 0, // Will be updated by posts
-            'profile_completion_percentage' => 95,
-            'is_verified' => true,
-            'verified_at' => now(),
-            'is_active' => true,
-        ]);
+        $admin->profile()->updateOrCreate(
+            ['user_id' => $admin->id],
+            [
+                'bio' => 'Platform administrator passionate about connecting book lovers worldwide.',
+                'location' => 'San Francisco, CA',
+                'favorite_genres' => ['Science Fiction', 'Technology', 'Business'],
+                'reading_goals' => ['Read 50 books this year', 'Explore more diverse authors'],
+                'reading_speed' => 'fast',
+                'languages' => ['English', 'Spanish'],
+                'books_read_count' => 127,
+                'reviews_written_count' => 89,
+                'friends_count' => 0, // Will be updated by relationships
+                'groups_count' => 0, // Will be updated by memberships
+                'posts_count' => 0, // Will be updated by posts
+                'profile_completion_percentage' => 95,
+                'is_verified' => true,
+                'verified_at' => now(),
+                'is_active' => true,
+            ]
+        );
 
         // Sample book lovers with diverse interests
         $users = [
@@ -153,84 +158,94 @@ class UserSeeder extends Seeder
         ];
 
         foreach ($users as $userData) {
-            $user = User::create([
-                'name' => $userData['name'],
-                'email' => $userData['email'],
-                'email_verified_at' => now(),
-                'password' => Hash::make('password'),
-                'role' => 'user',
-                'is_active' => true,
-                'last_login_at' => Carbon::now()->subDays(rand(0, 30)),
-                'last_activity_at' => Carbon::now()->subHours(rand(1, 72)),
-                'is_online' => rand(0, 100) < 20, // 20% chance of being online
-                'timezone' => ['UTC', 'America/New_York', 'Europe/London', 'Asia/Tokyo'][rand(0, 3)],
-                'locale' => ['en', 'es', 'fr'][rand(0, 2)],
-                'theme' => ['light', 'dark', 'auto'][rand(0, 2)],
-                'login_count' => rand(5, 150),
-                'last_password_change' => Carbon::now()->subDays(rand(30, 365)),
-            ]);
+            $user = User::firstOrCreate(
+                ['email' => $userData['email']],
+                [
+                    'name' => $userData['name'],
+                    'email_verified_at' => now(),
+                    'password' => Hash::make('password'),
+                    'role' => 'user',
+                    'is_active' => true,
+                    'last_login_at' => Carbon::now()->subDays(rand(0, 30)),
+                    'last_activity_at' => Carbon::now()->subHours(rand(1, 72)),
+                    'is_online' => rand(0, 100) < 20, // 20% chance of being online
+                    'timezone' => ['UTC', 'America/New_York', 'Europe/London', 'Asia/Tokyo'][rand(0, 3)],
+                    'locale' => ['en', 'es', 'fr'][rand(0, 2)],
+                    'theme' => ['light', 'dark', 'auto'][rand(0, 2)],
+                    'login_count' => rand(5, 150),
+                    'last_password_change' => Carbon::now()->subDays(rand(30, 365)),
+                ]
+            );
 
             // Create user profile
-            $user->profile()->create([
-                'bio' => $userData['bio'],
-                'location' => $userData['location'],
-                'birth_date' => Carbon::now()->subYears(rand(18, 65)),
-                'gender' => ['male', 'female', 'non_binary', 'prefer_not_to_say'][rand(0, 3)],
-                'favorite_genres' => $userData['favorite_genres'],
-                'favorite_authors' => $this->getRandomAuthors(),
-                'reading_goals' => $this->getRandomReadingGoals(),
-                'reading_speed' => $userData['reading_speed'],
-                'languages' => $this->getRandomLanguages(),
-                'is_private_profile' => rand(0, 100) < 15, // 15% private profiles
-                'show_reading_activity' => rand(0, 100) < 85, // 85% show activity
-                'show_friends_list' => rand(0, 100) < 70, // 70% show friends
-                'allow_friend_requests' => rand(0, 100) < 90, // 90% allow requests
-                'allow_group_invites' => rand(0, 100) < 80, // 80% allow invites
-                'allow_book_recommendations' => rand(0, 100) < 95, // 95% allow recommendations
-                'email_notifications' => rand(0, 100) < 75,
-                'push_notifications' => rand(0, 100) < 60,
-                'notification_likes' => rand(0, 100) < 80,
-                'notification_comments' => rand(0, 100) < 85,
-                'notification_friend_requests' => rand(0, 100) < 95,
-                'books_read_count' => $userData['books_read'],
-                'reviews_written_count' => $userData['reviews_written'],
-                'friends_count' => 0, // Will be updated by relationships
-                'groups_count' => 0, // Will be updated by memberships
-                'posts_count' => 0, // Will be updated by posts
-                'profile_completion_percentage' => rand(60, 100),
-                'is_verified' => rand(0, 100) < 10, // 10% verified users
-                'verified_at' => rand(0, 100) < 10 ? now() : null,
-                'is_active' => true,
-                'last_profile_update' => Carbon::now()->subDays(rand(1, 90)),
-            ]);
+            $user->profile()->updateOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'bio' => $userData['bio'],
+                    'location' => $userData['location'],
+                    'birth_date' => Carbon::now()->subYears(rand(18, 65)),
+                    'gender' => ['male', 'female', 'non_binary', 'prefer_not_to_say'][rand(0, 3)],
+                    'favorite_genres' => $userData['favorite_genres'],
+                    'favorite_authors' => $this->getRandomAuthors(),
+                    'reading_goals' => $this->getRandomReadingGoals(),
+                    'reading_speed' => $userData['reading_speed'],
+                    'languages' => $this->getRandomLanguages(),
+                    'is_private_profile' => rand(0, 100) < 15, // 15% private profiles
+                    'show_reading_activity' => rand(0, 100) < 85, // 85% show activity
+                    'show_friends_list' => rand(0, 100) < 70, // 70% show friends
+                    'allow_friend_requests' => rand(0, 100) < 90, // 90% allow requests
+                    'allow_group_invites' => rand(0, 100) < 80, // 80% allow invites
+                    'allow_book_recommendations' => rand(0, 100) < 95, // 95% allow recommendations
+                    'email_notifications' => rand(0, 100) < 75,
+                    'push_notifications' => rand(0, 100) < 60,
+                    'notification_likes' => rand(0, 100) < 80,
+                    'notification_comments' => rand(0, 100) < 85,
+                    'notification_friend_requests' => rand(0, 100) < 95,
+                    'books_read_count' => $userData['books_read'],
+                    'reviews_written_count' => $userData['reviews_written'],
+                    'friends_count' => 0, // Will be updated by relationships
+                    'groups_count' => 0, // Will be updated by memberships
+                    'posts_count' => 0, // Will be updated by posts
+                    'profile_completion_percentage' => rand(60, 100),
+                    'is_verified' => rand(0, 100) < 10, // 10% verified users
+                    'verified_at' => rand(0, 100) < 10 ? now() : null,
+                    'is_active' => true,
+                    'last_profile_update' => Carbon::now()->subDays(rand(1, 90)),
+                ]
+            );
         }
 
         // Create a few moderators
         for ($i = 0; $i < 3; $i++) {
-            $moderator = User::create([
-                'name' => "Moderator " . ($i + 1),
-                'email' => "moderator" . ($i + 1) . "@ai-book.com",
-                'email_verified_at' => now(),
-                'password' => Hash::make('password'),
-                'role' => 'moderator',
-                'is_active' => true,
-                'last_login_at' => Carbon::now()->subHours(rand(1, 24)),
-                'last_activity_at' => Carbon::now()->subHours(rand(1, 12)),
-                'timezone' => 'UTC',
-                'locale' => 'en',
-                'login_count' => rand(50, 200),
-            ]);
+            $moderator = User::firstOrCreate(
+                ['email' => "moderator" . ($i + 1) . "@ai-book.com"],
+                [
+                    'name' => "Moderator " . ($i + 1),
+                    'email_verified_at' => now(),
+                    'password' => Hash::make('password'),
+                    'role' => 'moderator',
+                    'is_active' => true,
+                    'last_login_at' => Carbon::now()->subHours(rand(1, 24)),
+                    'last_activity_at' => Carbon::now()->subHours(rand(1, 12)),
+                    'timezone' => 'UTC',
+                    'locale' => 'en',
+                    'login_count' => rand(50, 200),
+                ]
+            );
 
-            $moderator->profile()->create([
-                'bio' => 'Community moderator helping maintain a safe and welcoming environment for all book lovers.',
-                'favorite_genres' => ['Fiction', 'Non-Fiction'],
-                'books_read_count' => rand(50, 150),
-                'reviews_written_count' => rand(20, 80),
-                'profile_completion_percentage' => 100,
-                'is_verified' => true,
-                'verified_at' => now(),
-                'is_active' => true,
-            ]);
+            $moderator->profile()->updateOrCreate(
+                ['user_id' => $moderator->id],
+                [
+                    'bio' => 'Community moderator helping maintain a safe and welcoming environment for all book lovers.',
+                    'favorite_genres' => ['Fiction', 'Non-Fiction'],
+                    'books_read_count' => rand(50, 150),
+                    'reviews_written_count' => rand(20, 80),
+                    'profile_completion_percentage' => 100,
+                    'is_verified' => true,
+                    'verified_at' => now(),
+                    'is_active' => true,
+                ]
+            );
         }
     }
 

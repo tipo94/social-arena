@@ -1,4 +1,5 @@
-import axios, { AxiosResponse, AxiosProgressEvent } from 'axios'
+import axios from 'axios'
+import type { AxiosResponse, AxiosProgressEvent } from 'axios'
 import type { 
   MediaAttachment, 
   MediaUploadOptions, 

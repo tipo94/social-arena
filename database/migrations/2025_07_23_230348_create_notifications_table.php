@@ -26,8 +26,8 @@ return new class extends Migration
             $table->text('message');
             $table->string('action_url')->nullable(); // URL to redirect when notification is clicked
             
-            // Related entity (polymorphic)
-            $table->morphs('notifiable'); // Can relate to posts, comments, groups, etc.
+            // Related entity (polymorphic - nullable since not all notifications are tied to a model)
+            $table->nullableMorphs('notifiable'); // Can relate to posts, comments, groups, etc.
             
             // Notification metadata
             $table->json('data')->nullable(); // Additional context data

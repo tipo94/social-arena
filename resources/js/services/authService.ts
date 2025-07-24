@@ -1,403 +1,264 @@
 import type { 
-  User, 
   LoginCredentials, 
   RegisterData, 
   AuthResponse, 
-  ProfileUpdateData, 
-  PasswordChangeData,
-  PrivacySettings,
-  ApiResponse 
-} from '@/types/auth'
+  ApiResponse, 
+  PasswordChangeData, 
+  ResetPasswordData,
+  PrivacySettings
+} from '../types/auth'
 
 class AuthService {
   private baseURL = '/api'
 
   // Get CSRF token for Laravel Sanctum
   async getCsrfCookie(): Promise<void> {
-    await fetch('/sanctum/csrf-cookie', {
-      method: 'GET',
-      credentials: 'include',
-    })
+    await window.axios.get('/sanctum/csrf-cookie')
   }
 
   // Authentication methods
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
+    // Get CSRF cookie first
     await this.getCsrfCookie()
     
-    const response = await fetch(`${this.baseURL}/auth/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify(credentials),
-    })
-
-    return await response.json()
+    const response = await window.axios.post(`${this.baseURL}/auth/login`, credentials)
+    return response.data
   }
 
   async register(data: RegisterData): Promise<AuthResponse> {
+    // Get CSRF cookie first
     await this.getCsrfCookie()
     
-    const response = await fetch(`${this.baseURL}/auth/register`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify(data),
-    })
-
-    return await response.json()
+    const response = await window.axios.post(`${this.baseURL}/auth/register`, data)
+    return response.data
   }
 
   async logout(): Promise<ApiResponse> {
-    const response = await fetch(`${this.baseURL}/auth/logout`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      credentials: 'include',
-    })
-
-    return await response.json()
+    const response = await window.axios.post(`${this.baseURL}/auth/logout`)
+    return response.data
   }
 
   async logoutAll(): Promise<ApiResponse> {
-    const response = await fetch(`${this.baseURL}/auth/logout-all`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      credentials: 'include',
-    })
-
-    return await response.json()
+    const response = await window.axios.post(`${this.baseURL}/auth/logout-all`)
+    return response.data
   }
 
   async getCurrentUser(): Promise<AuthResponse> {
-    const response = await fetch(`${this.baseURL}/auth/me`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
-      credentials: 'include',
-    })
-
-    return await response.json()
+    if (!window.axios) {
+      throw new Error('Axios not initialized. Make sure bootstrap.js is imported before using authService.')
+    }
+    
+    const response = await window.axios.get(`${this.baseURL}/auth/me`)
+    return response.data
   }
 
   // Password management
   async changePassword(data: PasswordChangeData): Promise<ApiResponse> {
-    const response = await fetch(`${this.baseURL}/auth/change-password`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify(data),
-    })
-
-    return await response.json()
+    const response = await window.axios.post(`${this.baseURL}/auth/change-password`, data)
+    return response.data
   }
 
+  // Password reset
   async forgotPassword(email: string): Promise<ApiResponse> {
     await this.getCsrfCookie()
     
-    const response = await fetch(`${this.baseURL}/auth/forgot-password`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify({ email }),
-    })
-
-    return await response.json()
+    const response = await window.axios.post(`${this.baseURL}/auth/forgot-password`, { email })
+    return response.data
   }
 
-  async resetPassword(data: {
-    email: string
-    token: string
-    password: string
-    password_confirmation: string
-  }): Promise<ApiResponse> {
+  async resetPassword(data: ResetPasswordData): Promise<ApiResponse> {
     await this.getCsrfCookie()
     
-    const response = await fetch(`${this.baseURL}/auth/reset-password`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify(data),
-    })
-
-    return await response.json()
+    const response = await window.axios.post(`${this.baseURL}/auth/reset-password`, data)
+    return response.data
   }
 
   // Email verification
   async resendVerification(): Promise<ApiResponse> {
-    const response = await fetch(`${this.baseURL}/auth/resend-verification`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      credentials: 'include',
-    })
-
-    return await response.json()
-  }
-
-  // Profile management
-  async getProfile(userId?: number): Promise<ApiResponse<{ user: User }>> {
-    const url = userId 
-      ? `${this.baseURL}/users/profile/${userId}`
-      : `${this.baseURL}/users/profile`
-    
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
-      credentials: 'include',
-    })
-
-    return await response.json()
-  }
-
-  async updateProfile(data: ProfileUpdateData): Promise<ApiResponse<{ user: User }>> {
-    const response = await fetch(`${this.baseURL}/users/profile`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify(data),
-    })
-
-    return await response.json()
-  }
-
-  async updateAvatar(file: File): Promise<ApiResponse> {
-    const formData = new FormData()
-    formData.append('avatar', file)
-
-    const response = await fetch(`${this.baseURL}/users/profile/avatar`, {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-      },
-      credentials: 'include',
-      body: formData,
-    })
-
-    return await response.json()
-  }
-
-  async deleteAvatar(): Promise<ApiResponse> {
-    const response = await fetch(`${this.baseURL}/users/profile/avatar`, {
-      method: 'DELETE',
-      headers: {
-        'Accept': 'application/json',
-      },
-      credentials: 'include',
-    })
-
-    return await response.json()
-  }
-
-  async updateCoverImage(file: File): Promise<ApiResponse> {
-    const formData = new FormData()
-    formData.append('cover_image', file)
-
-    const response = await fetch(`${this.baseURL}/users/profile/cover-image`, {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-      },
-      credentials: 'include',
-      body: formData,
-    })
-
-    return await response.json()
-  }
-
-  async deleteCoverImage(): Promise<ApiResponse> {
-    const response = await fetch(`${this.baseURL}/users/profile/cover-image`, {
-      method: 'DELETE',
-      headers: {
-        'Accept': 'application/json',
-      },
-      credentials: 'include',
-    })
-
-    return await response.json()
-  }
-
-  // Privacy settings
-  async getPrivacySettings(): Promise<ApiResponse<PrivacySettings>> {
-    const response = await fetch(`${this.baseURL}/users/privacy`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
-      credentials: 'include',
-    })
-
-    return await response.json()
-  }
-
-  async updatePrivacySettings(settings: Partial<PrivacySettings>): Promise<ApiResponse> {
-    const response = await fetch(`${this.baseURL}/users/privacy`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify(settings),
-    })
-
-    return await response.json()
+    const response = await window.axios.post(`${this.baseURL}/auth/resend-verification`)
+    return response.data
   }
 
   // Username/email availability check
   async checkUsername(username: string): Promise<ApiResponse<{ available: boolean }>> {
-    const response = await fetch(`${this.baseURL}/auth/check-username`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify({ username }),
-    })
-
-    return await response.json()
+    const response = await window.axios.post(`${this.baseURL}/auth/check-username`, { username })
+    return response.data
   }
 
   async checkEmail(email: string): Promise<ApiResponse<{ available: boolean }>> {
-    const response = await fetch(`${this.baseURL}/auth/check-email`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify({ email }),
-    })
-
-    return await response.json()
+    const response = await window.axios.post(`${this.baseURL}/auth/check-email`, { email })
+    return response.data
   }
 
-  // Social authentication
-  getSocialLoginUrl(provider: 'google' | 'github'): string {
-    return `${this.baseURL}/auth/social/redirect/${provider}`
+  // Profile refresh
+  async refreshProfile(): Promise<AuthResponse> {
+    const response = await window.axios.post(`${this.baseURL}/auth/refresh`)
+    return response.data
   }
 
-  async getSocialAccount(): Promise<ApiResponse> {
-    const response = await fetch(`${this.baseURL}/auth/social/account`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
-      credentials: 'include',
-    })
-
-    return await response.json()
+  // Social authentication helpers
+  getSocialLoginUrl(provider: string, redirectUrl?: string): string {
+    const url = new URL(`${window.location.origin}${this.baseURL}/auth/social/redirect/${provider}`)
+    if (redirectUrl) {
+      url.searchParams.set('redirect_url', redirectUrl)
+    }
+    return url.toString()
   }
 
-  async unlinkSocialAccount(): Promise<ApiResponse> {
-    const response = await fetch(`${this.baseURL}/auth/social/unlink`, {
-      method: 'DELETE',
-      headers: {
-        'Accept': 'application/json',
-      },
-      credentials: 'include',
-    })
-
-    return await response.json()
+  // Utility methods
+  isTokenExpired(token: string): boolean {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]))
+      return Date.now() >= payload.exp * 1000
+    } catch {
+      return true
+    }
   }
 
-  // Account deletion
-  async getDeletionInfo(): Promise<ApiResponse> {
-    const response = await fetch(`${this.baseURL}/users/account/deletion/info`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
-      credentials: 'include',
-    })
-
-    return await response.json()
+  // Session management
+  async validateSession(): Promise<boolean> {
+    try {
+      const response = await this.getCurrentUser()
+      return response.success && !!response.data?.user
+    } catch {
+      return false
+    }
   }
 
-  async getDeletionStatus(): Promise<ApiResponse> {
-    const response = await fetch(`${this.baseURL}/users/account/deletion/status`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
-      credentials: 'include',
-    })
-
-    return await response.json()
+  // Helper to format user data for storage
+  formatUserForStorage(user: any): any {
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      username: user.username,
+      avatar_url: user.avatar_url,
+      email_verified_at: user.email_verified_at,
+      role: user.role,
+      is_premium: user.is_premium,
+      profile: user.profile,
+    }
   }
 
-  async requestDeletion(password: string, reason?: string): Promise<ApiResponse> {
-    const response = await fetch(`${this.baseURL}/users/account/deletion/request`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify({
-        password,
-        reason,
-        confirmation: true,
-      }),
-    })
-
-    return await response.json()
+  // Error handling helper
+  handleAuthError(error: any): string {
+    if (error.response?.status === 401) {
+      return 'Invalid credentials or session expired'
+    }
+    
+    if (error.response?.status === 422) {
+      const errors = error.response.data?.errors
+      if (errors) {
+        return Object.values(errors).flat().join(', ')
+      }
+    }
+    
+    if (error.response?.status === 419) {
+      return 'Security token expired. Please refresh the page and try again.'
+    }
+    
+    return error.response?.data?.message || error.message || 'An unexpected error occurred'
   }
 
-  async cancelDeletion(): Promise<ApiResponse> {
-    const response = await fetch(`${this.baseURL}/users/account/deletion/cancel`, {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-      },
-      credentials: 'include',
-    })
-
-    return await response.json()
+  // Token validation
+  async validateToken(token: string): Promise<boolean> {
+    try {
+      const response = await window.axios.get(`${this.baseURL}/auth/me`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      return response.data.success
+    } catch {
+      return false
+    }
   }
 
-  async exportData(password: string): Promise<ApiResponse> {
-    const response = await fetch(`${this.baseURL}/users/account/export-data`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify({ password }),
-    })
+  // Check if user needs to verify email
+  async checkVerificationStatus(): Promise<{ verified: boolean, message?: string }> {
+    try {
+      const response = await this.getCurrentUser()
+      if (response.success && response.data?.user) {
+        return {
+          verified: !!response.data.user.email_verified_at,
+          message: response.data.user.email_verified_at 
+            ? undefined 
+            : 'Please verify your email address to access all features.'
+        }
+      }
+      return { verified: false, message: 'Unable to check verification status' }
+    } catch {
+      return { verified: false, message: 'Unable to check verification status' }
+    }
+  }
 
-    return await response.json()
+  // Get user permissions
+  async getUserPermissions(): Promise<string[]> {
+    try {
+      const response = await this.getCurrentUser()
+      if (response.success && response.data?.user) {
+        return response.data.user.permissions || []
+      }
+      return []
+    } catch {
+      return []
+    }
+  }
+
+  // Check if user has permission
+  async hasPermission(permission: string): Promise<boolean> {
+    const permissions = await this.getUserPermissions()
+    return permissions.includes(permission) || permissions.includes('*')
+  }
+
+  // Get user role
+  async getUserRole(): Promise<string | null> {
+    try {
+      const response = await this.getCurrentUser()
+      if (response.success && response.data?.user) {
+        return response.data.user.role
+      }
+      return null
+    } catch {
+      return null
+    }
+  }
+
+  // Session timeout handling
+  setupSessionTimeout(minutes: number = 30): void {
+    const timeoutMs = minutes * 60 * 1000
+    
+    let timeoutId: number
+    
+    const resetTimeout = () => {
+      clearTimeout(timeoutId)
+      timeoutId = window.setTimeout(() => {
+        this.logout().then(() => {
+          window.location.href = '/login?reason=timeout'
+        })
+      }, timeoutMs)
+    }
+    
+    // Reset timeout on user activity
+    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart']
+    events.forEach(event => {
+      document.addEventListener(event, resetTimeout, { passive: true })
+    })
+    
+    // Initial timeout setup
+    resetTimeout()
+  }
+
+  // Privacy settings methods
+  async getPrivacySettings(): Promise<ApiResponse> {
+    const response = await window.axios.get(`${this.baseURL}/users/privacy`)
+    return response.data
+  }
+
+  async updatePrivacySettings(settings: PrivacySettings): Promise<ApiResponse> {
+    const response = await window.axios.put(`${this.baseURL}/users/privacy`, settings)
+    return response.data
   }
 }
 
-export const authService = new AuthService()
-export default authService 
+export default new AuthService() 

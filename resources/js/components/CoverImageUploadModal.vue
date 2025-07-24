@@ -139,7 +139,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { authService } from '@/services/authService'
+import authService from '@/services/authService'
 
 const emit = defineEmits<{
   close: []

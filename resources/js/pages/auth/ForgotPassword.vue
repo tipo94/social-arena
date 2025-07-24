@@ -110,7 +110,7 @@
 
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
-import { authService } from '@/services/authService'
+import authService from '@/services/authService'
 import type { ValidationErrors } from '@/types/auth'
 
 const email = ref('')

@@ -122,7 +122,10 @@ class AuthController extends Controller
         // Update activity
         $user->updateActivity();
 
-        // Create token
+        // Establish web session for SPA authentication
+        Auth::login($user, $validated['remember'] ?? false);
+
+        // Also create token for API authentication (optional - can be used for mobile apps)
         $deviceName = $validated['device_name'] ?? $request->userAgent();
         $expiresAt = $validated['remember'] ?? false ? now()->addDays(30) : now()->addDay();
         
@@ -145,7 +148,13 @@ class AuthController extends Controller
      */
     public function logout(Request $request): JsonResponse
     {
-        $request->user()->currentAccessToken()->delete();
+        // Logout from web session
+        Auth::logout();
+        
+        // Also delete current token if exists
+        if ($request->user() && $request->user()->currentAccessToken()) {
+            $request->user()->currentAccessToken()->delete();
+        }
 
         return response()->json([
             'success' => true,

@@ -15,4 +15,10 @@ interface ImportMetaEnv {
 
 interface ImportMeta {
   readonly env: ImportMetaEnv
+}
+
+declare global {
+  interface Window {
+    axios: import('axios').AxiosInstance
+  }
 } 

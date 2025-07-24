@@ -64,8 +64,10 @@ return new class extends Migration
             $table->index(['last_activity_at', 'is_active']); // Recently active groups
             $table->index('slug'); // SEO URLs
             
-            // Full-text search index for group discovery
-            $table->fullText(['name', 'description'], 'groups_search');
+            // Full-text search index for group discovery (MySQL/PostgreSQL only)
+            if (config('database.default') !== 'sqlite') {
+                $table->fullText(['name', 'description'], 'groups_search');
+            }
             
             // Composite indexes for complex queries
             $table->index(['type', 'privacy', 'is_active', 'members_count']); // Browse with popularity

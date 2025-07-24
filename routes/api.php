@@ -149,17 +149,17 @@ Route::prefix('users')->middleware(['auth:sanctum'])->group(function () {
         Route::get('/completion', [App\Http\Controllers\Api\UserProfileController::class, 'getCompletionStatus']);
     });
 
-            // Privacy settings routes
-        Route::prefix('privacy')->group(function () {
-            Route::get('/', [App\Http\Controllers\Api\PrivacyController::class, 'getPrivacySettings']);
-            Route::put('/', [App\Http\Controllers\Api\PrivacyController::class, 'updatePrivacySettings']);
-            Route::get('/options', [App\Http\Controllers\Api\PrivacyController::class, 'getPrivacyOptions']);
-            Route::post('/check-access', [App\Http\Controllers\Api\PrivacyController::class, 'checkPrivacyAccess']);
-            Route::get('/audit-log', [App\Http\Controllers\Api\PrivacyController::class, 'getPrivacyAuditLog']);
-        });
+    // Privacy settings routes
+    Route::prefix('privacy')->group(function () {
+        Route::get('/', [App\Http\Controllers\Api\PrivacyController::class, 'getPrivacySettings']);
+        Route::put('/', [App\Http\Controllers\Api\PrivacyController::class, 'updatePrivacySettings']);
+        Route::get('/options', [App\Http\Controllers\Api\PrivacyController::class, 'getPrivacyOptions']);
+        Route::post('/check-access', [App\Http\Controllers\Api\PrivacyController::class, 'checkPrivacyAccess']);
+        Route::get('/audit-log', [App\Http\Controllers\Api\PrivacyController::class, 'getPrivacyAuditLog']);
+    });
 
-        // Account deletion and data management routes
-        Route::prefix('account')->group(function () {
+    // Account deletion and data management routes
+    Route::prefix('account')->group(function () {
             Route::get('/deletion/info', [App\Http\Controllers\Api\AccountDeletionController::class, 'getDeletionInfo']);
             Route::get('/deletion/status', [App\Http\Controllers\Api\AccountDeletionController::class, 'getDeletionStatus']);
             Route::post('/deletion/request', [App\Http\Controllers\Api\AccountDeletionController::class, 'requestDeletion']);
@@ -188,8 +188,73 @@ Route::prefix('posts')->group(function () {
 | Social Interaction Routes
 |--------------------------------------------------------------------------
 */
-Route::prefix('social')->middleware(['auth:sanctum'])->group(function () {
-    // Social features routes will be implemented in task 4.0
+Route::prefix('friends')->middleware(['auth:sanctum'])->group(function () {
+    // Friend utilities (put these first to avoid route conflicts)
+    Route::get('/statistics', [App\Http\Controllers\Api\FriendshipController::class, 'statistics']); // Get friendship stats
+    Route::get('/suggestions', [App\Http\Controllers\Api\FriendshipController::class, 'suggestions']); // Get friend suggestions
+    Route::get('/suggestions/analytics', [App\Http\Controllers\Api\FriendshipController::class, 'suggestionAnalytics']); // Get suggestion analytics
+    Route::delete('/suggestions/cache', [App\Http\Controllers\Api\FriendshipController::class, 'clearSuggestionCache']); // Clear suggestion cache
+    Route::get('/mutual/{user}', [App\Http\Controllers\Api\FriendshipController::class, 'mutualFriends']); // Get mutual friends
+    
+    // Friend management routes
+    Route::get('/', [App\Http\Controllers\Api\FriendshipController::class, 'index']); // Get friends list
+    Route::post('/request', [App\Http\Controllers\Api\FriendshipController::class, 'store']); // Send friend request
+    Route::get('/{friendship}', [App\Http\Controllers\Api\FriendshipController::class, 'show']); // Get specific friendship
+    Route::delete('/{friendship}', [App\Http\Controllers\Api\FriendshipController::class, 'destroy']); // Remove friendship
+    
+    // Friend request actions
+    Route::post('/{friendship}/accept', [App\Http\Controllers\Api\FriendshipController::class, 'accept']); // Accept request
+    Route::post('/{friendship}/decline', [App\Http\Controllers\Api\FriendshipController::class, 'decline']); // Decline request
+    Route::post('/{friendship}/block', [App\Http\Controllers\Api\FriendshipController::class, 'block']); // Block user
+    Route::post('/{friendship}/unblock', [App\Http\Controllers\Api\FriendshipController::class, 'unblock']); // Unblock user
+});
+
+/*
+|--------------------------------------------------------------------------
+| Follow/Unfollow System Routes
+|--------------------------------------------------------------------------
+*/
+
+Route::prefix('follow')->middleware(['auth:sanctum'])->group(function () {
+    Route::get('/following', [App\Http\Controllers\Api\FollowController::class, 'following']); // Get following list
+    Route::get('/followers', [App\Http\Controllers\Api\FollowController::class, 'followers']); // Get followers list
+    Route::get('/statistics', [App\Http\Controllers\Api\FollowController::class, 'statistics']); // Get follow statistics
+    
+    Route::post('/user', [App\Http\Controllers\Api\FollowController::class, 'follow']); // Follow a user
+    Route::delete('/user', [App\Http\Controllers\Api\FollowController::class, 'unfollow']); // Unfollow a user
+    Route::post('/toggle', [App\Http\Controllers\Api\FollowController::class, 'toggle']); // Toggle follow status
+    
+    Route::patch('/{follow}/settings', [App\Http\Controllers\Api\FollowController::class, 'updateSettings']); // Update follow settings
+});
+
+/*
+|--------------------------------------------------------------------------
+| Real-time Notification System Routes (NEW in 4.9)
+|--------------------------------------------------------------------------
+*/
+Route::prefix('notifications')->middleware(['auth:sanctum'])->group(function () {
+    // Main notification endpoints
+    Route::get('/', [App\Http\Controllers\Api\NotificationController::class, 'index']); // Get user's notifications
+    Route::get('/statistics', [App\Http\Controllers\Api\NotificationController::class, 'statistics']); // Get notification stats
+    Route::get('/unread-count', [App\Http\Controllers\Api\NotificationController::class, 'unreadCount']); // Get unread count
+    Route::get('/types', [App\Http\Controllers\Api\NotificationController::class, 'types']); // Get notification types and counts
+    
+    // Individual notification management
+    Route::get('/{notification}', [App\Http\Controllers\Api\NotificationController::class, 'show']); // Get specific notification
+    Route::patch('/{notification}/read', [App\Http\Controllers\Api\NotificationController::class, 'markAsRead']); // Mark as read
+    Route::patch('/{notification}/unread', [App\Http\Controllers\Api\NotificationController::class, 'markAsUnread']); // Mark as unread
+    Route::patch('/{notification}/dismiss', [App\Http\Controllers\Api\NotificationController::class, 'dismiss']); // Dismiss notification
+    Route::delete('/{notification}', [App\Http\Controllers\Api\NotificationController::class, 'destroy']); // Delete notification
+    
+    // Bulk operations
+    Route::patch('/mark-all-read', [App\Http\Controllers\Api\NotificationController::class, 'markAllAsRead']); // Mark all as read
+    Route::post('/bulk/mark-read', [App\Http\Controllers\Api\NotificationController::class, 'bulkMarkAsRead']); // Bulk mark as read
+    Route::post('/bulk/dismiss', [App\Http\Controllers\Api\NotificationController::class, 'bulkDismiss']); // Bulk dismiss
+    Route::delete('/bulk/delete', [App\Http\Controllers\Api\NotificationController::class, 'bulkDelete']); // Bulk delete
+    
+    // Maintenance and testing
+    Route::delete('/cleanup', [App\Http\Controllers\Api\NotificationController::class, 'cleanup']); // Clean up old notifications
+    Route::post('/test', [App\Http\Controllers\Api\NotificationController::class, 'test']); // Test notification (dev/admin)
 });
 
 /*
@@ -207,7 +272,22 @@ Route::prefix('posts')->middleware(['auth:sanctum'])->group(function () {
     
     // Post interactions
     Route::post('/{post}/like', [App\Http\Controllers\Api\PostController::class, 'toggleLike']); // Like/unlike
+    Route::post('/{post}/share', [App\Http\Controllers\Api\PostController::class, 'share']); // Share/repost
+    Route::get('/{post}/shares', [App\Http\Controllers\Api\PostController::class, 'shares']); // Get shares
+    Route::delete('/{post}/unshare', [App\Http\Controllers\Api\PostController::class, 'unshare']); // Remove share
     Route::post('/{post}/report', [App\Http\Controllers\Api\PostController::class, 'report']); // Report post
+    
+    // Comment routes
+    Route::get('/{post}/comments', [App\Http\Controllers\Api\CommentController::class, 'index']); // Get comments
+    Route::post('/{post}/comments', [App\Http\Controllers\Api\CommentController::class, 'store']); // Create comment
+    Route::get('/{post}/comments/{comment}', [App\Http\Controllers\Api\CommentController::class, 'show']); // Get specific comment
+    Route::put('/{post}/comments/{comment}', [App\Http\Controllers\Api\CommentController::class, 'update']); // Update comment
+    Route::delete('/{post}/comments/{comment}', [App\Http\Controllers\Api\CommentController::class, 'destroy']); // Delete comment
+    
+    // Comment interactions
+    Route::post('/{post}/comments/{comment}/like', [App\Http\Controllers\Api\CommentController::class, 'toggleLike']); // Like/unlike comment
+    Route::post('/{post}/comments/{comment}/report', [App\Http\Controllers\Api\CommentController::class, 'report']); // Report comment
+    Route::get('/{post}/comments/{comment}/replies', [App\Http\Controllers\Api\CommentController::class, 'replies']); // Get comment replies
     
     // Analytics and insights
     Route::get('/{post}/analytics', [App\Http\Controllers\Api\PostController::class, 'analytics']); // Post analytics

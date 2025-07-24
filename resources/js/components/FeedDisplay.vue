@@ -80,7 +80,7 @@
           v-for="post in feedStore.posts"
           :key="post.id"
           :threshold="0.1"
-          :root-margin="200"
+          :root-margin="'200px'"
           @intersect="onPostVisible(post.id)"
         >
           <PostCard
@@ -103,7 +103,7 @@
         <LazyLoader
           v-if="feedStore.hasMore && !feedStore.isLoadingMore"
           :threshold="0.5"
-          :root-margin="400"
+          :root-margin="'400px'"
           @intersect="loadMore"
           target-class="py-8"
         >

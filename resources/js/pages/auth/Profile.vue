@@ -227,7 +227,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { usePrivacyStore } from '@/stores/privacy'
-import { authService } from '@/services/authService'
+import authService from '@/services/authService'
 import type { User } from '@/types/auth'
 
 // Components

@@ -304,6 +304,7 @@ interface Props {
   editMode?: boolean
   post?: Post | null
   groupId?: number | null
+  initialType?: string
   onClose?: () => void
   onCancel?: () => void
   onSuccess?: (post: Post) => void
@@ -313,6 +314,7 @@ const props = withDefaults(defineProps<Props>(), {
   editMode: false,
   post: null,
   groupId: null,
+  initialType: 'text',
 })
 
 const emit = defineEmits<{
@@ -326,7 +328,7 @@ const authStore = useAuthStore()
 // Form state
 const formData = reactive<CreatePostData | UpdatePostData>({
   content: '',
-  type: 'text',
+  type: props.initialType || 'text',
   visibility: 'friends',
   metadata: {},
   media_ids: [],

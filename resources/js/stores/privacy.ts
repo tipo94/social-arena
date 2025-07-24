@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { authService } from '@/services/authService'
+import authService from '@/services/authService'
 import { useAuthStore } from './auth'
 import type { PrivacySettings, ApiResponse } from '@/types/auth'
 
